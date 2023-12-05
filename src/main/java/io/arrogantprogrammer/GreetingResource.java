@@ -51,11 +51,34 @@ public class GreetingResource {
           return the DTO record
          */
 
-        Greeting greeting = new Greeting(greetingToAdd, true);
-        return greetingRepository.persist(greeting).onItem().transform(persistedGreeting -> {
-            return new GreetingRecord(persistedGreeting.id, persistedGreeting.text, persistedGreeting.verified);
+//        Uni<Boolean> isVerified = verificationService.verify();
+//        return isVerified.map(verified -> {
+//            if (verified) {
+//                return new Greeting(greetingToAdd, true);
+//            } else {
+//                return new Greeting(greetingToAdd, false);
+//            }
+//        }).map(greeting -> {
+//            return persist(greeting);
+//        }).flatMap(persistedGreeting -> {
+//            return new GreetingRecord(persistedGreeting.id, persistedGreeting.text, persistedGreeting.verified);
+//        });
+
+        Uni<Greeting> greetingUni = Uni.createFrom().item(new Greeting(greetingToAdd));
+        return greetingUni.onItem().transformToUni(greeting -> {
+            return verificationService.verify()
+                    .flatMap(verified -> {
+                        greeting.verified = verified;
+                        return greeting.persist();
+                    })
+                    .map(res -> new GreetingRecord(greeting.id, greeting.text, greeting.verified))
+                    .onFailure().recoverWithItem(new GreetingRecord(greeting.id, greeting.text, greeting.verified)); // Handle failure if needed
         });
 
+    }
+
+    Uni<Greeting> persist(Greeting greeting) {
+        return greetingRepository.persist(greeting);
     }
 
     GreetingRecord mapToGreetingRecord(Greeting greeting) {
