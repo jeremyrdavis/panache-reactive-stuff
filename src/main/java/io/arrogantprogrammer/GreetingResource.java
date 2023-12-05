@@ -45,23 +45,21 @@ public class GreetingResource {
 
     @POST@WithTransaction
     public Uni<GreetingRecord> addGreeting(final String greetingToAdd) {
+        /*
+          Call the verification service
+          Persist the greeting
+          return the DTO record
+         */
 
-//        Greeting greeting = new Greeting(greetingToAdd, true);
-//        return greetingRepository.persist(greeting).onItem().transform(persistedGreeting -> {
-//            return new GreetingRecord(persistedGreeting.id, persistedGreeting.text, persistedGreeting.verified);
-//        });
-
-        Uni<Greeting> greetingUni = Uni.createFrom().item(new Greeting(greetingToAdd));
-        return greetingUni.onItem().transform(greeting -> {
-            return verificationService.verify()
-                    .flatMap(verified -> {
-                        greeting.verified = verified;
-                        return greeting.persist();
-            }).map(res -> {
-                        return new GreetingRecord(greeting.id, greeting.text, greeting.verified);
-
-                    });
+        Greeting greeting = new Greeting(greetingToAdd, true);
+        return greetingRepository.persist(greeting).onItem().transform(persistedGreeting -> {
+            return new GreetingRecord(persistedGreeting.id, persistedGreeting.text, persistedGreeting.verified);
         });
+
+    }
+
+    GreetingRecord mapToGreetingRecord(Greeting greeting) {
+        return new GreetingRecord(greeting.id, greeting.text, greeting.verified);
     }
 
 }
